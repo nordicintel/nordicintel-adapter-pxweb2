@@ -80,12 +80,16 @@ class AuthConfig:
 
 @dataclass(frozen=True, slots=True)
 class PxWebConfig:
-    """Runtime configuration for one PxAPI v2 provider."""
+    """Runtime configuration for one PxAPI v2 provider.
+
+    ``languages`` is an override for providers that do not publish a usable ``/config``.
+    Leave it out and the provider is asked, so nothing here has to be kept in step with
+    what the publisher actually serves.
+    """
 
     base_api_url: str
     languages: tuple[str, ...]
     page_size: int = 1000
-    table_ids: tuple[str, ...] = ()
     auth: AuthConfig = AuthConfig()
 
     @classmethod
@@ -114,25 +118,8 @@ class PxWebConfig:
             base_api_url=base_api_url,
             languages=languages,
             page_size=page_size,
-            table_ids=_table_ids(config.get("table_ids")),
             auth=AuthConfig.from_mapping(auth_value),
         )
-
-
-def _table_ids(value: Any) -> tuple[str, ...]:
-    """Restrict a harvest to named upstream tables.
-
-    This exists for bounded runs against a large catalogue: a few tables to check an
-    integration with, rather than several thousand to wait for.
-    """
-    if value is None:
-        return ()
-    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        raise ConfigurationError("provider.config.table_ids must be a list of strings")
-    identifiers = tuple(dict.fromkeys(item.strip() for item in value if item.strip()))
-    if not identifiers:
-        raise ConfigurationError("provider.config.table_ids must not be empty when supplied")
-    return identifiers
 
 
 def _optional_str(mapping: Mapping[str, Any], key: str) -> str | None:

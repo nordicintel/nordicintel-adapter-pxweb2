@@ -69,15 +69,6 @@ class PxWebAdapter:
             table = await self._get_table(scope.native_table_id, scope.language)
             return DiscoveryResult(scope=scope, entries=[self._discovery_entry(table)])
 
-        if self.config.table_ids:
-            return DiscoveryResult(
-                scope=scope,
-                entries=[
-                    self._discovery_entry(await self._get_table(native, scope.language))
-                    for native in self.config.table_ids
-                ],
-            )
-
         entries_by_id: dict[str, DiscoveryEntry] = {}
         page_number = 1
         total_pages: int | None = None

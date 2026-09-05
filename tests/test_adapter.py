@@ -195,22 +195,6 @@ async def test_single_table_discovery_addresses_the_upstream_identity() -> None:
 
 
 @pytest.mark.asyncio
-async def test_a_configured_table_allowlist_skips_the_catalogue_listing() -> None:
-    http = FakeHttp(
-        {
-            ("GET", "https://example.test/api/v2/tables/TAB1"): table_payload("TAB1"),
-            ("GET", "https://example.test/api/v2/tables/TAB2"): table_payload("TAB2"),
-        }
-    )
-    adapter = PxWebAdapter(provider({"table_ids": ["TAB1", "TAB2"]}), {}, http)
-
-    result = await adapter.discover(DiscoveryScope(language="sv"))
-
-    assert [entry.native_table_id for entry in result.entries] == ["TAB1", "TAB2"]
-    assert all("/tables/TAB" in call["url"] for call in http.calls)
-
-
-@pytest.mark.asyncio
 async def test_should_refresh_covers_force_failure_absence_and_the_marker() -> None:
     adapter = PxWebAdapter(provider(), {}, FakeHttp({}))
     entry = _entry()

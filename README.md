@@ -26,11 +26,8 @@ is `pxweb2` is served by this package once it is installed alongside the worker.
   "adapter_type": "pxweb2",
   "config": {
     "base_api_url": "https://statistikdatabasen.scb.se/api/v2",
-    "languages": ["sv", "en"],
-    "default_language": "sv",
     "page_size": 1000,
-    "request_interval_seconds": 0.34,
-    "table_ids": ["TAB4707"]
+    "request_interval_seconds": 0.34
   }
 }
 ```
@@ -38,34 +35,33 @@ is `pxweb2` is served by this package once it is installed alongside the worker.
 | Key | Meaning |
 |---|---|
 | `base_api_url` | Required. The PxAPI v2 root. |
-| `languages` | Languages this provider serves. Read from `/config` when omitted. |
-| `default_language` | The language whose catalogue is complete. Read from `/config` when omitted. |
+| `languages` | Override for providers without a usable `/config`. Otherwise the provider is asked. |
 | `page_size` | Table listing page size. |
-| `table_ids` | Optional allowlist. Harvest only these tables; the inventory is then never authoritative. |
 | `auth` | Optional `header_name`/`header_secret` or `query_param`/`query_secret`, resolved from the host's secrets. |
 
 `request_interval_seconds` is read by the harvest worker rather than by this package: it
 builds the HTTP client. It belongs in the same `config` object because an upstream quota
 is a property of the provider. SCB publishes 30 calls per 10 seconds in `/config`.
 
-## Two things PxAPI v2 forces on a harvester
+## What PxAPI v2 forces on a harvester
 
-**A catalogue is a different size in every language.** A table that was never published in
-English is absent from the English listing entirely, and requesting it with `lang=en`
-returns 404 rather than an empty result. Two consequences are load-bearing:
+**A catalogue is a different size in every language.** A table never published in English
+is absent from the English listing entirely, and requesting it with `lang=en` returns 404
+rather than an empty result. At SCB that is 5,253 tables in Swedish and 3,315 in English.
 
-- The inventory is enumerated in the provider's **default** language, never in whichever
-  language a job happened to request. Listing in English at SCB returns 3,315 of 5,253
-  tables, and calling that authoritative would retire the other 1,878.
-- Each entry reports `available_languages`, read from the `hreflang` of its own links, so
-  a worker never asks for a language a table does not have.
+This is why a run is scoped to one language. Discovery lists `lang={scope.language}`, so
+every table it returns is one that can actually be fetched in that language — a fact about
+the response rather than something the host has to infer per table. Two languages are two
+runs over two catalogues.
 
-If the default language cannot be determined, the enumeration is reported as
-non-authoritative rather than guessed at.
+What a provider publishes is discovered, never configured. There is no list of tables to
+maintain anywhere: the catalogue listing is the only statement of what exists, and
+`should_refresh` decides from the publisher's own marker what has changed since last time.
 
-**Discontinued tables stay in the inventory.** Discovery passes
-`includeDiscontinued=true`: a table the publisher stopped updating still exists, and
-absence-based retirement is about tables that are gone, not tables that are finished.
+**Discontinued tables stay in the inventory.** Discovery passes `includeDiscontinued=true`.
+A table the publisher has finished updating is still published, and `discontinued` is
+carried through to core as the publisher's own attribute — never inferred, never
+overwritten.
 
 ## Development
 
