@@ -84,7 +84,6 @@ class PxWebConfig:
 
     base_api_url: str
     languages: tuple[str, ...]
-    default_language: str | None = None
     page_size: int = 1000
     table_ids: tuple[str, ...] = ()
     auth: AuthConfig = AuthConfig()
@@ -105,9 +104,6 @@ class PxWebConfig:
         languages = (
             tuple(normalize_languages(languages_value)) if languages_value else ()
         )
-        default_language = _optional_str(config, "default_language")
-        if default_language is not None:
-            default_language = normalize_language(default_language)
         page_size = _positive_int(config.get("page_size", 1000), "page_size")
         auth_value = config.get("auth")
         if auth_value is not None and not isinstance(auth_value, Mapping):
@@ -117,7 +113,6 @@ class PxWebConfig:
         return cls(
             base_api_url=base_api_url,
             languages=languages,
-            default_language=default_language,
             page_size=page_size,
             table_ids=_table_ids(config.get("table_ids")),
             auth=AuthConfig.from_mapping(auth_value),
@@ -127,9 +122,8 @@ class PxWebConfig:
 def _table_ids(value: Any) -> tuple[str, ...]:
     """Restrict a harvest to named upstream tables.
 
-    This exists for bounded runs against a large catalogue. A restricted inventory says
-    nothing about which tables the provider no longer publishes, so discovery reports it
-    as non-authoritative and absence is never decided from it.
+    This exists for bounded runs against a large catalogue: a few tables to check an
+    integration with, rather than several thousand to wait for.
     """
     if value is None:
         return ()

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any, cast
 
 from nordicintel_core.jsonstat import JsonStatDataset
@@ -44,44 +44,41 @@ class PxWebAdapter:
         # One adapter serves one job, so the service description is fetched at most once.
         self._service: Mapping[str, Any] | None = None
 
-    async def resolve_languages(self, requested: Sequence[str] | None) -> list[str]:
-        supported = await self._supported_languages()
-        if requested is None:
-            return supported
-        normalized = normalize_languages(requested)
-        unsupported = [language for language in normalized if language not in supported]
-        if unsupported:
-            raise ValueError(f"unsupported language(s) for {self.provider.id}: {unsupported}")
-        return normalized
+    async def supported_languages(self) -> list[str]:
+        """Every language this provider publishes."""
+        if self.config.languages:
+            return list(self.config.languages)
+        languages = _required_list(await self._service_config(), "languages")
+        return normalize_languages(
+            language["id"]
+            if isinstance(language, Mapping) and isinstance(language.get("id"), str)
+            else str(language)
+            for language in languages
+        )
 
     async def discover(self, scope: DiscoveryScope) -> DiscoveryResult:
-        """Enumerate the requested scope.
+        """List the Tables this provider publishes in ``scope.language``.
 
-        A catalogue is not the same size in every language: PxAPI v2 omits a table
-        entirely from a language it was never published in. Listing in whichever language
-        a job happened to ask for first would therefore report a smaller inventory as if
-        it were the whole provider, and absence-based retirement would delete every table
-        missing from that language. The enumeration runs in the provider's default
-        language for that reason, and only claims to be authoritative when that language
-        is known.
+        PxAPI v2 catalogues are per language: a Table never published in English is
+        absent from the English listing, and asking for it with ``lang=en`` is a 404
+        rather than an empty result. Listing in the scope's own language is therefore
+        exactly right - every Table it returns is a Table that can be fetched in that
+        language, which is the only question this call has to answer.
         """
         if scope.native_table_id is not None:
-            table = await self._get_table(scope.native_table_id, scope.languages[0])
-            return DiscoveryResult(
-                scope=scope, entries=[self._discovery_entry(table)], authoritative=False
-            )
+            table = await self._get_table(scope.native_table_id, scope.language)
+            return DiscoveryResult(scope=scope, entries=[self._discovery_entry(table)])
 
         if self.config.table_ids:
-            entries = [
-                self._discovery_entry(await self._get_table(native, scope.languages[0]))
-                for native in self.config.table_ids
-            ]
-            # A deliberately partial inventory can never decide what has disappeared.
-            return DiscoveryResult(scope=scope, entries=entries, authoritative=False)
+            return DiscoveryResult(
+                scope=scope,
+                entries=[
+                    self._discovery_entry(await self._get_table(native, scope.language))
+                    for native in self.config.table_ids
+                ],
+            )
 
-        inventory_language = await self._inventory_language()
         entries_by_id: dict[str, DiscoveryEntry] = {}
-        language = inventory_language or scope.languages[0]
         page_number = 1
         total_pages: int | None = None
         while total_pages is None or page_number <= total_pages:
@@ -89,14 +86,15 @@ class PxWebAdapter:
                 "GET",
                 endpoint_url(self.config.base_api_url, "tables"),
                 params={
-                    "lang": language,
+                    "lang": scope.language,
+                    # A table the publisher has finished updating is still published, and
+                    # still belongs in the catalogue we serve.
                     "includeDiscontinued": "true",
                     "pageNumber": page_number,
                     "pageSize": self.config.page_size,
                 },
             )
-            tables = _required_list(payload, "tables")
-            for table in tables:
+            for table in _required_list(payload, "tables"):
                 entry = self._discovery_entry(_required_mapping_value(table, "table"))
                 entries_by_id.setdefault(entry.native_table_id, entry)
 
@@ -107,67 +105,44 @@ class PxWebAdapter:
             else:
                 break
 
-        return DiscoveryResult(
-            scope=scope,
-            entries=list(entries_by_id.values()),
-            authoritative=inventory_language is not None,
-        )
+        return DiscoveryResult(scope=scope, entries=list(entries_by_id.values()))
 
-    async def languages_to_refresh(
-        self,
-        entry: DiscoveryEntry,
-        stored: Mapping[str, LanguageState],
-        requested: Sequence[str],
-        *,
-        force: bool,
-    ) -> list[str]:
-        requested_languages = normalize_languages(requested)
-        available = set(entry.available_languages or requested_languages)
-        candidates = [language for language in requested_languages if language in available]
-        if force:
-            return candidates
-        marker = entry.marker
-        to_refresh: list[str] = []
-        for language in candidates:
-            state = stored.get(language)
-            if (
-                state is None
-                or state.last_harvested_at is None
-                or state.failed
-                or marker is None
-                or state.comparison_marker != marker
-            ):
-                to_refresh.append(language)
-        return to_refresh
+    async def should_refresh(
+        self, entry: DiscoveryEntry, stored: LanguageState | None, *, force: bool
+    ) -> bool:
+        """Compare the catalogue marker against what was accepted last time.
+
+        The marker is this adapter's own: publication time and the period range the
+        listing reports. A Table that has never been accepted, or whose last attempt
+        failed, has nothing to compare against and is always fetched.
+        """
+        if force or stored is None or stored.last_harvested_at is None or stored.failed:
+            return True
+        return entry.marker is None or stored.comparison_marker != entry.marker
 
     async def fetch_metadata(
-        self, entry: DiscoveryEntry, languages: Sequence[str]
-    ) -> list[MetadataFetchResult]:
-        results: list[MetadataFetchResult] = []
-        for language in normalize_languages(languages):
-            table = await self._get_table(entry.native_table_id, language)
-            dataset_payload = await self._request_json(
-                "GET",
-                endpoint_url(self.config.base_api_url, "metadata", entry.native_table_id),
-                params={"lang": language, "defaultSelection": "false"},
-            )
-            dataset = JsonStatDataset.from_mapping(
-                _required_mapping_value(dataset_payload, "dataset")
-            )
-            metadata = LanguageMetadata(
+        self, entry: DiscoveryEntry, language: str
+    ) -> MetadataFetchResult:
+        """Return this Table's complete representation in one language."""
+        language = normalize_language(language)
+        table = await self._get_table(entry.native_table_id, language)
+        dataset_payload = await self._request_json(
+            "GET",
+            endpoint_url(self.config.base_api_url, "metadata", entry.native_table_id),
+            params={"lang": language, "defaultSelection": "false"},
+        )
+        return MetadataFetchResult(
+            provider_id=self.provider.id,
+            native_table_id=entry.native_table_id,
+            metadata=LanguageMetadata(
                 language=language,
                 catalog=self._catalog_metadata(table),
-                dataset=dataset,
-            )
-            results.append(
-                MetadataFetchResult(
-                    provider_id=self.provider.id,
-                    native_table_id=entry.native_table_id,
-                    metadata=metadata,
-                    comparison_marker=self._comparison_marker(table),
-                )
-            )
-        return results
+                dataset=JsonStatDataset.from_mapping(
+                    _required_mapping_value(dataset_payload, "dataset")
+                ),
+            ),
+            comparison_marker=self._comparison_marker(table),
+        )
 
     async def fetch_data(
         self, native_table_id: str, selection: ExplicitSelection
@@ -187,30 +162,6 @@ class PxWebAdapter:
             },
         )
         return JsonStatDataset.from_mapping(_required_mapping_value(payload, "dataset"))
-
-    async def _supported_languages(self) -> list[str]:
-        if self.config.languages:
-            return list(self.config.languages)
-        languages = _required_list(await self._service_config(), "languages")
-        return normalize_languages(
-            language["id"]
-            if isinstance(language, Mapping) and isinstance(language.get("id"), str)
-            else str(language)
-            for language in languages
-        )
-
-    async def _inventory_language(self) -> str | None:
-        """The language whose catalogue listing covers the whole provider.
-
-        Returns None when the provider does not say which language that is, which makes
-        any enumeration non-authoritative rather than guessing and retiring real tables.
-        """
-        if self.config.default_language is not None:
-            return self.config.default_language
-        value = (await self._service_config()).get("defaultLanguage")
-        if isinstance(value, str) and value.strip():
-            return normalize_language(value)
-        return None
 
     async def _service_config(self) -> Mapping[str, Any]:
         if self._service is None:
@@ -240,7 +191,6 @@ class PxWebAdapter:
     def _discovery_entry(self, table: Mapping[str, Any]) -> DiscoveryEntry:
         return DiscoveryEntry(
             native_table_id=_required_str(table, "id"),
-            available_languages=_available_languages(table),
             marker=self._comparison_marker(table),
         )
 
@@ -276,30 +226,6 @@ class PxWebAdapter:
             time_unit=cast(TimeUnit | None, _optional_str(table, "timeUnit")),
             paths=_paths(table.get("paths")),
         )
-
-
-def _available_languages(table: Mapping[str, Any]) -> list[str] | None:
-    """Read the languages a table exists in from the languages its own links point at.
-
-    PxAPI v2 does not publish a table in every language a provider serves, and asking for
-    a language it was never published in is a 404, not an empty result. Every language it
-    does exist in appears as the ``hreflang`` of one of its links, so that set is what a
-    worker should confine itself to. None means the response said nothing, and the
-    requested languages stand.
-    """
-    links = table.get("links")
-    if not isinstance(links, list):
-        return None
-    languages: list[str] = []
-    for link in links:
-        if not isinstance(link, Mapping):
-            continue
-        value = link.get("hreflang")
-        if isinstance(value, str) and value.strip():
-            language = normalize_language(value)
-            if language not in languages:
-                languages.append(language)
-    return languages or None
 
 
 def _merge_request_kwargs(first: dict[str, Any], second: dict[str, Any]) -> dict[str, Any]:

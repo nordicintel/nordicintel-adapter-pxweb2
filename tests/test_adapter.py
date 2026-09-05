@@ -109,14 +109,13 @@ def dataset_payload(values: list[Any] | None = None) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_adapter_matches_protocol_and_resolves_configured_languages() -> None:
+async def test_adapter_matches_protocol_and_reports_configured_languages() -> None:
     adapter = PxWebAdapter(
         provider({"languages": ["SV", " en ", "sv"]}), {}, FakeHttp({})
     )
 
     assert isinstance(adapter, NordicIntelAdapter)
-    assert await adapter.resolve_languages(None) == ["sv", "en"]
-    assert await adapter.resolve_languages(["EN", "sv", "en"]) == ["en", "sv"]
+    assert await adapter.supported_languages() == ["sv", "en"]
 
 
 @pytest.mark.asyncio
@@ -127,7 +126,7 @@ async def test_factory_returns_protocol_compatible_adapter() -> None:
 
 
 @pytest.mark.asyncio
-async def test_resolve_languages_can_fall_back_to_config_endpoint() -> None:
+async def test_supported_languages_can_fall_back_to_config_endpoint() -> None:
     http = FakeHttp(
         {
             ("GET", "https://example.test/api/v2/config"): {
@@ -140,15 +139,10 @@ async def test_resolve_languages_can_fall_back_to_config_endpoint() -> None:
     )
     adapter = PxWebAdapter(provider({"languages": []}), {}, http)
 
-    assert await adapter.resolve_languages(None) == ["sv", "en"]
-
-
-@pytest.mark.asyncio
-async def test_unsupported_language_is_rejected() -> None:
-    adapter = PxWebAdapter(provider(), {}, FakeHttp({}))
-
-    with pytest.raises(ValueError, match="unsupported language"):
-        await adapter.resolve_languages(["da"])
+    assert await adapter.supported_languages() == ["sv", "en"]
+    # The service description is read once, however many times it is needed.
+    await adapter.supported_languages()
+    assert len(http.calls) == 1
 
 
 def listing(*tables: dict[str, Any], language: str = "sv") -> dict[str, Any]:
@@ -165,146 +159,94 @@ def listing(*tables: dict[str, Any], language: str = "sv") -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_discover_pages_tables_and_marks_full_inventory_authoritative() -> None:
+async def test_discovery_lists_the_catalogue_of_the_scope_language() -> None:
     http = FakeHttp(
         {
             ("GET", "https://example.test/api/v2/tables"): listing(
-                table_payload("TAB1"), table_payload("TAB2", ("sv",))
+                table_payload("TAB1"), table_payload("TAB2")
             )
-        }
-    )
-    adapter = PxWebAdapter(provider({"default_language": "sv"}), {}, http)
-
-    result = await adapter.discover(DiscoveryScope(languages=["sv", "en"]))
-
-    assert result.authoritative is True
-    assert [entry.native_table_id for entry in result.entries] == ["TAB1", "TAB2"]
-    # A table reports the languages it exists in, not the ones the job asked for.
-    assert result.entries[0].available_languages == ["sv", "en"]
-    assert result.entries[1].available_languages == ["sv"]
-    # Discontinued tables stay in the inventory, or absence-based retirement would
-    # delete every table the publisher merely stopped updating.
-    assert http.calls[0]["params"]["includeDiscontinued"] == "true"
-
-
-@pytest.mark.asyncio
-async def test_the_inventory_is_listed_in_the_default_language_not_the_requested_one() -> None:
-    http = FakeHttp(
-        {("GET", "https://example.test/api/v2/tables"): listing(table_payload("TAB1"))}
-    )
-    adapter = PxWebAdapter(provider({"default_language": "sv"}), {}, http)
-
-    result = await adapter.discover(DiscoveryScope(languages=["en"]))
-
-    # An English listing omits every Swedish-only table. Enumerating in it and calling
-    # the result authoritative would retire all of them.
-    assert http.calls[0]["params"]["lang"] == "sv"
-    assert result.authoritative is True
-
-
-@pytest.mark.asyncio
-async def test_an_inventory_without_a_known_default_language_is_not_authoritative() -> None:
-    http = FakeHttp(
-        {
-            ("GET", "https://example.test/api/v2/config"): {
-                "languages": [{"id": "sv"}, {"id": "en"}]
-            },
-            ("GET", "https://example.test/api/v2/tables"): listing(table_payload("TAB1")),
         }
     )
     adapter = PxWebAdapter(provider(), {}, http)
 
-    result = await adapter.discover(DiscoveryScope(languages=["sv", "en"]))
+    result = await adapter.discover(DiscoveryScope(language="en"))
 
-    assert result.entries[0].native_table_id == "TAB1"
-    assert result.authoritative is False
-
-
-@pytest.mark.asyncio
-async def test_a_configured_table_allowlist_is_never_authoritative() -> None:
-    http = FakeHttp(
-        {
-            ("GET", "https://example.test/api/v2/tables/TAB1"): table_payload("TAB1"),
-            ("GET", "https://example.test/api/v2/tables/TAB2"): table_payload("TAB2"),
-        }
-    )
-    adapter = PxWebAdapter(
-        provider({"default_language": "sv", "table_ids": ["TAB1", "TAB2"]}), {}, http
-    )
-
-    result = await adapter.discover(DiscoveryScope(languages=["sv"]))
-
+    # A catalogue is enumerated in the language the run is for, so every Table returned
+    # is one that can actually be fetched in it.
+    assert http.calls[0]["params"]["lang"] == "en"
     assert [entry.native_table_id for entry in result.entries] == ["TAB1", "TAB2"]
-    assert result.authoritative is False
-    # A bounded run must not enumerate the catalogue it deliberately skipped.
-    assert all("/tables/TAB" in call["url"] for call in http.calls)
+    # A Table the publisher has finished updating is still published.
+    assert http.calls[0]["params"]["includeDiscontinued"] == "true"
 
 
 @pytest.mark.asyncio
-async def test_single_table_discovery_is_not_authoritative() -> None:
+async def test_single_table_discovery_addresses_the_upstream_identity() -> None:
     http = FakeHttp(
         {("GET", "https://example.test/api/v2/tables/TAB1"): table_payload("TAB1")}
     )
     adapter = PxWebAdapter(provider(), {}, http)
 
     result = await adapter.discover(
-        DiscoveryScope(table_id="scb-tab1", native_table_id="TAB1", languages=["sv"])
+        DiscoveryScope(language="sv", table_id="scb-tab1", native_table_id="TAB1")
     )
 
-    assert result.authoritative is False
     assert [entry.native_table_id for entry in result.entries] == ["TAB1"]
+    assert http.calls[0]["params"] == {"lang": "sv"}
 
 
 @pytest.mark.asyncio
-async def test_languages_to_refresh_uses_force_failures_missing_state_and_marker() -> (
-    None
-):
-    adapter = PxWebAdapter(provider(), {}, FakeHttp({}))
-    entry = await _entry(adapter)
-    harvested_at = datetime(2026, 9, 5, tzinfo=UTC)
+async def test_a_configured_table_allowlist_skips_the_catalogue_listing() -> None:
+    http = FakeHttp(
+        {
+            ("GET", "https://example.test/api/v2/tables/TAB1"): table_payload("TAB1"),
+            ("GET", "https://example.test/api/v2/tables/TAB2"): table_payload("TAB2"),
+        }
+    )
+    adapter = PxWebAdapter(provider({"table_ids": ["TAB1", "TAB2"]}), {}, http)
 
-    assert await adapter.languages_to_refresh(entry, {}, ["sv", "en"], force=True) == [
-        "sv",
-        "en",
-    ]
-    assert await adapter.languages_to_refresh(entry, {}, ["sv", "en"], force=False) == [
-        "sv",
-        "en",
-    ]
+    result = await adapter.discover(DiscoveryScope(language="sv"))
+
+    assert [entry.native_table_id for entry in result.entries] == ["TAB1", "TAB2"]
+    assert all("/tables/TAB" in call["url"] for call in http.calls)
+
+
+@pytest.mark.asyncio
+async def test_should_refresh_covers_force_failure_absence_and_the_marker() -> None:
+    adapter = PxWebAdapter(provider(), {}, FakeHttp({}))
+    entry = _entry()
+    harvested_at = datetime(2026, 9, 5, tzinfo=UTC)
+    current = LanguageState(
+        language="sv", comparison_marker=entry.marker, last_harvested_at=harvested_at
+    )
+
+    assert await adapter.should_refresh(entry, None, force=False) is True
+    assert await adapter.should_refresh(entry, current, force=True) is True
+    assert await adapter.should_refresh(entry, current, force=False) is False
     assert (
-        await adapter.languages_to_refresh(
+        await adapter.should_refresh(
+            entry, current.model_copy(update={"failed": True}), force=False
+        )
+        is True
+    )
+    assert (
+        await adapter.should_refresh(
             entry,
-            {
-                "sv": LanguageState(
-                    language="sv",
-                    comparison_marker=entry.marker,
-                    last_harvested_at=harvested_at,
-                ),
-                "en": LanguageState(
-                    language="en",
-                    comparison_marker=entry.marker,
-                    last_harvested_at=harvested_at,
-                ),
-            },
-            ["sv", "en"],
+            current.model_copy(update={"comparison_marker": {"updated": "later"}}),
             force=False,
         )
-        == []
+        is True
     )
-    assert await adapter.languages_to_refresh(
-        entry,
-        {
-            "sv": LanguageState(
-                language="sv", comparison_marker=entry.marker, failed=True
-            )
-        },
-        ["sv"],
-        force=False,
-    ) == ["sv"]
+    # A language with state but no successful harvest has nothing to compare against.
+    assert (
+        await adapter.should_refresh(
+            entry, current.model_copy(update={"last_harvested_at": None}), force=False
+        )
+        is True
+    )
 
 
 @pytest.mark.asyncio
-async def test_fetch_metadata_returns_core_valid_metadata_only_result() -> None:
+async def test_fetch_metadata_returns_one_core_valid_metadata_only_result() -> None:
     http = FakeHttp(
         {
             ("GET", "https://example.test/api/v2/tables/TAB1"): table_payload("TAB1"),
@@ -316,14 +258,13 @@ async def test_fetch_metadata_returns_core_valid_metadata_only_result() -> None:
     )
     adapter = PxWebAdapter(provider(), {}, http)
 
-    results = await adapter.fetch_metadata(await _entry(adapter), ["sv"])
+    result = await adapter.fetch_metadata(_entry(), "SV")
 
-    assert len(results) == 1
-    result = results[0]
     assert result.provider_id == "scb"
     assert result.native_table_id == "TAB1"
     assert result.metadata.language == "sv"
     assert result.metadata.catalog.label == "Population"
+    assert result.metadata.catalog.discontinued is False
     assert result.metadata.dataset.value == []
     assert result.metadata.dataset.status is None
     assert result.comparison_marker == {
@@ -364,11 +305,10 @@ async def test_fetch_data_posts_explicit_selection_and_preserves_live_values() -
     }
 
 
-async def _entry(adapter: PxWebAdapter):
+def _entry() -> DiscoveryEntry:
     table = table_payload("TAB1")
     return DiscoveryEntry(
         native_table_id="TAB1",
-        available_languages=["sv", "en"],
         marker={
             "updated": table["updated"],
             "firstPeriod": table["firstPeriod"],
