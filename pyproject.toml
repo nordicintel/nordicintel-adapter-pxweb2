@@ -12,6 +12,11 @@ license = "MIT"
 authors = [{ name = "NordicIntel" }]
 dependencies = ["nordicintel-core[http]>=0.1.0"]
 
+# The name is the `adapter_type` a Provider row carries, and it is how a harvest worker
+# turns that string into code without importing anything the database named.
+[project.entry-points."nordicintel.adapters"]
+pxweb2 = "nordicintel_adapter_pxweb2:factory"
+
 [dependency-groups]
 dev = [
   "mypy>=1.14,<2",
@@ -19,6 +24,11 @@ dev = [
   "pytest-asyncio>=0.25,<1",
   "ruff>=0.9,<1",
 ]
+
+[tool.uv.sources]
+# Development checkout, matching the sibling layout of the other repositories.
+# Replace with a pinned published release before deployment.
+nordicintel-core = { path = "../nordicintel-core", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nordicintel_adapter_pxweb2"]

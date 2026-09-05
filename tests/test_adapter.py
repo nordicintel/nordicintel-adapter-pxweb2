@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
-from nordicintel_adapter_pxweb2 import PxWebAdapter, PxWebAdapterFactory
 from nordicintel_core.models import (
     DimensionSelection,
     DiscoveryEntry,
@@ -14,6 +13,8 @@ from nordicintel_core.models import (
     NordicIntelAdapter,
     ProviderDefinition,
 )
+
+from nordicintel_adapter_pxweb2 import PxWebAdapter, PxWebAdapterFactory
 
 
 class FakeResponse:
@@ -56,7 +57,10 @@ def provider(config: dict[str, Any] | None = None) -> ProviderDefinition:
     )
 
 
-def table_payload(table_id: str = "TAB1") -> dict[str, Any]:
+def table_payload(
+    table_id: str = "TAB1", languages: tuple[str, ...] = ("sv", "en")
+) -> dict[str, Any]:
+    """One PxAPI v2 table, published in the given languages and no others."""
     return {
         "id": table_id,
         "label": "Population",
@@ -66,10 +70,11 @@ def table_payload(table_id: str = "TAB1") -> dict[str, Any]:
         "variableNames": ["region"],
         "links": [
             {
-                "rel": "self",
-                "hreflang": "sv",
-                "href": f"https://example.test/{table_id}",
+                "rel": "self" if index == 0 else "alternate",
+                "hreflang": language,
+                "href": f"https://example.test/{table_id}?lang={language}",
             }
+            for index, language in enumerate(languages)
         ],
         "description": "Population table",
         "source": "SCB",
@@ -146,30 +151,93 @@ async def test_unsupported_language_is_rejected() -> None:
         await adapter.resolve_languages(["da"])
 
 
+def listing(*tables: dict[str, Any], language: str = "sv") -> dict[str, Any]:
+    return {
+        "language": language,
+        "tables": list(tables),
+        "page": {
+            "pageNumber": 1,
+            "pageSize": 1000,
+            "totalElements": len(tables),
+            "totalPages": 1,
+        },
+    }
+
+
 @pytest.mark.asyncio
 async def test_discover_pages_tables_and_marks_full_inventory_authoritative() -> None:
     http = FakeHttp(
         {
-            ("GET", "https://example.test/api/v2/tables"): {
-                "language": "sv",
-                "tables": [table_payload("TAB1"), table_payload("TAB2")],
-                "page": {
-                    "pageNumber": 1,
-                    "pageSize": 1000,
-                    "totalElements": 2,
-                    "totalPages": 1,
-                },
-            }
+            ("GET", "https://example.test/api/v2/tables"): listing(
+                table_payload("TAB1"), table_payload("TAB2", ("sv",))
+            )
+        }
+    )
+    adapter = PxWebAdapter(provider({"default_language": "sv"}), {}, http)
+
+    result = await adapter.discover(DiscoveryScope(languages=["sv", "en"]))
+
+    assert result.authoritative is True
+    assert [entry.native_table_id for entry in result.entries] == ["TAB1", "TAB2"]
+    # A table reports the languages it exists in, not the ones the job asked for.
+    assert result.entries[0].available_languages == ["sv", "en"]
+    assert result.entries[1].available_languages == ["sv"]
+    # Discontinued tables stay in the inventory, or absence-based retirement would
+    # delete every table the publisher merely stopped updating.
+    assert http.calls[0]["params"]["includeDiscontinued"] == "true"
+
+
+@pytest.mark.asyncio
+async def test_the_inventory_is_listed_in_the_default_language_not_the_requested_one() -> None:
+    http = FakeHttp(
+        {("GET", "https://example.test/api/v2/tables"): listing(table_payload("TAB1"))}
+    )
+    adapter = PxWebAdapter(provider({"default_language": "sv"}), {}, http)
+
+    result = await adapter.discover(DiscoveryScope(languages=["en"]))
+
+    # An English listing omits every Swedish-only table. Enumerating in it and calling
+    # the result authoritative would retire all of them.
+    assert http.calls[0]["params"]["lang"] == "sv"
+    assert result.authoritative is True
+
+
+@pytest.mark.asyncio
+async def test_an_inventory_without_a_known_default_language_is_not_authoritative() -> None:
+    http = FakeHttp(
+        {
+            ("GET", "https://example.test/api/v2/config"): {
+                "languages": [{"id": "sv"}, {"id": "en"}]
+            },
+            ("GET", "https://example.test/api/v2/tables"): listing(table_payload("TAB1")),
         }
     )
     adapter = PxWebAdapter(provider(), {}, http)
 
     result = await adapter.discover(DiscoveryScope(languages=["sv", "en"]))
 
-    assert result.authoritative is True
+    assert result.entries[0].native_table_id == "TAB1"
+    assert result.authoritative is False
+
+
+@pytest.mark.asyncio
+async def test_a_configured_table_allowlist_is_never_authoritative() -> None:
+    http = FakeHttp(
+        {
+            ("GET", "https://example.test/api/v2/tables/TAB1"): table_payload("TAB1"),
+            ("GET", "https://example.test/api/v2/tables/TAB2"): table_payload("TAB2"),
+        }
+    )
+    adapter = PxWebAdapter(
+        provider({"default_language": "sv", "table_ids": ["TAB1", "TAB2"]}), {}, http
+    )
+
+    result = await adapter.discover(DiscoveryScope(languages=["sv"]))
+
     assert [entry.native_table_id for entry in result.entries] == ["TAB1", "TAB2"]
-    assert result.entries[0].available_languages == ["sv", "en"]
-    assert http.calls[0]["params"]["includeDiscontinued"] == "true"
+    assert result.authoritative is False
+    # A bounded run must not enumerate the catalogue it deliberately skipped.
+    assert all("/tables/TAB" in call["url"] for call in http.calls)
 
 
 @pytest.mark.asyncio
