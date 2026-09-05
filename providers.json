@@ -1,0 +1,666 @@
+[
+    {
+        "provider_code": "scb",
+        "api_type": "pxweb2",
+        "default_language": "sv",
+        "languages": ["sv", "en"],
+        "label": "Statistiska centralbyrån",
+        "base_api_url": "https://statistikdatabasen.scb.se/api/v2",
+        "base_web_url": "https://pxweb2.pages.dev",
+        "rate_limit": 0.4,
+        "cell_limit": 150000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": ["csv", "json-stat2"],
+            "source_references": {
+                "sv": "Källa: SCB",
+                "en": "Source: Statistics Sweden"
+            },
+            "website": "https://www.scb.se/",
+            "description": {
+                "sv": "Statistiska centralbyrån producerar officiell statistik om Sverige.",
+                "en": "Statistics Sweden produces official statistics for Sweden."
+            }
+        }
+    },
+    {
+        "provider_code": "ssb",
+        "api_type": "pxweb2",
+        "default_language": "en",
+        "languages": ["en", "no"],
+        "label": "Statistics Norway",
+        "base_api_url": "https://data.ssb.no/api/pxwebapi/v2/",
+        "base_web_url": "https://www.ssb.no/en/statbank/table/",
+        "rate_limit": 0.25,
+        "cell_limit": 800000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "NO",
+            "data_formats": [
+                "json-stat2",
+                "csv",
+                "px",
+                "xlsx",
+                "html",
+                "json-px",
+                "parquet"
+            ],
+            "source_references": null,
+            "website": "https://www.ssb.no/",
+            "description": {
+                "en": "National statistical institute of Norway."
+            }
+        }
+    },
+    {
+        "provider_code": "csn",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv"],
+        "label": "Centrala studiestödsnämnden (CSN)",
+        "base_api_url": "https://statistik.csn.se/PXWeb/api/v1",
+        "base_web_url": "https://statistik.csn.se/PxWeb/pxweb",
+        "rate_limit": 2,
+        "cell_limit": 100000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": [
+                "px",
+                "xlsx",
+                "csv",
+                "csv2",
+                "csv3",
+                "json",
+                "json-stat",
+                "json-stat2"
+            ],
+            "dbid": {
+                "CSNstat": "CSNstat"
+            },
+            "source_references": null,
+            "website": "https://www.csn.se/",
+            "description": {
+                "sv": "Centrala studiestödsnämnden (CSN) är en svensk statlig förvaltningsmyndighet som ansvarar för studiestödet i Sverige.",
+                "en": "Centrala studiestödsnämnden (CSN) is the Swedish authority responsible for student aid."
+            }
+        }
+    },
+    {
+        "provider_code": "energi",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv", "en"],
+        "label": "Energimyndigheten",
+        "base_api_url": "https://pxexternal.energimyndigheten.se/api/v1",
+        "base_web_url": "https://pxexternal.energimyndigheten.se/pxweb",
+        "rate_limit": 1.3,
+        "cell_limit": 100000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": [
+                "px",
+                "xlsx",
+                "csv",
+                "csv2",
+                "csv3",
+                "json",
+                "json-stat",
+                "json-stat2"
+            ],
+            "dbid": {
+                "Energimyndighetens_statistikdatabas": "Energimyndighetens_statistikdatabas"
+            },
+            "source_references": null,
+            "website": "https://www.energimyndigheten.se/",
+            "description": {
+                "sv": "Energimyndigheten är en svensk statlig förvaltningsmyndighet som arbetar för ett hållbart energisystem.",
+                "en": "The Swedish Energy Agency works for a sustainable energy system."
+            }
+        }
+    },
+    {
+        "provider_code": "fohm",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv", "en"],
+        "label": "Folkhälsomyndigheten",
+        "base_api_url": "https://fohm-app.folkhalsomyndigheten.se/Folkhalsodata/api/v1",
+        "base_web_url": "https://fohm-app.folkhalsomyndigheten.se/Folkhalsodata/pxweb",
+        "rate_limit": 0.35,
+        "cell_limit": 100000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": [
+                "px",
+                "xlsx",
+                "csv",
+                "json",
+                "json-stat",
+                "json-stat2"
+            ],
+            "dbid": {
+                "A_Folkhalsodata": "A_Folkhalsodata"
+            },
+            "source_references": null,
+            "website": "https://www.folkhalsomyndigheten.se/",
+            "description": {
+                "sv": "Folkhälsomyndigheten är en svensk statlig förvaltningsmyndighet som arbetar för att skydda och förbättra folkhälsan.",
+                "en": "The Public Health Agency of Sweden works to protect and improve public health."
+            }
+        }
+    },
+    {
+        "provider_code": "sjv",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv"],
+        "label": "Statens jordbruksverk",
+        "base_api_url": "https://statistik.sjv.se/PXWeb/api/v1",
+        "base_web_url": "https://statistik.sjv.se/PXWeb/pxweb",
+        "rate_limit": 0.5,
+        "cell_limit": 100000,
+        "variable_limit": 1000,
+
+        "extension": {
+            "country_code": "SE",
+            "data_formats": [
+                "px",
+                "xlsx",
+                "csv",
+                "csv2",
+                "csv3",
+                "json",
+                "json-stat",
+                "json-stat2"
+            ],
+            "dbid": {
+                "Jordbruksverkets%20statistikdatabas": "Jordbruksverkets%20statistikdatabas"
+            },
+            "source_references": null,
+            "website": "https://www.jordbruksverket.se/",
+            "description": {
+                "sv": "Jordbruksverket är en svensk statlig förvaltningsmyndighet som arbetar för en hållbar utveckling av jordbruket.",
+                "en": "The Swedish Board of Agriculture works for sustainable agricultural development."
+            }
+        }
+    },
+    {
+        "provider_code": "konj",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv", "en"],
+        "label": "Konjunkturinstitutets prognosdatabas",
+        "base_api_url": "https://prognos.konj.se/PxWeb/api/v1",
+        "base_web_url": "https://prognos.konj.se/PxWeb/pxweb",
+        "rate_limit": 1.25,
+        "cell_limit": 100000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": [
+                "px",
+                "xlsx",
+                "csv",
+                "json",
+                "json-stat",
+                "json-stat2"
+            ],
+            "dbid": {
+                "SenastePrognosen": "SenastePrognosen",
+                "UrvalAvVariabler": "UrvalAvVariabler",
+                "XLangtidsscenario": "XLangtidsscenario"
+            },
+            "source_references": null,
+            "website": "https://www.konj.se/",
+            "description": {
+                "sv": "Konjunkturinstitutet ansvarar för att analysera och prognostisera den ekonomiska utvecklingen.",
+                "en": "The institute analyzes and forecasts economic development."
+            }
+        }
+    },
+    {
+        "provider_code": "lans",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv"],
+        "label": "Länsstyrelsernas statistikdatabas",
+        "base_api_url": "https://pxweb.lansstyrelsen.se/api/v1",
+        "base_web_url": "https://pxweb.lansstyrelsen.se/pxweb",
+        "rate_limit": 1.25,
+        "cell_limit": 150000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": ["px", "json-stat2"],
+            "dbid": {
+                "Miljotillstandet_i_skogslandskapet": "Miljotillstandet_i_skogslandskapet"
+            },
+            "source_references": null,
+            "website": "https://www.lansstyrelsen.se/",
+            "description": {
+                "sv": "Statistikdatabas om miljötillstånd i skogslandskapet.",
+                "en": "Statistics on environmental state in forest landscapes."
+            }
+        }
+    },
+    {
+        "provider_code": "msb",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv", "en"],
+        "label": "MSB brand och olyckor",
+        "base_api_url": "https://statistik.mcf.se/PXWeb/api/v1",
+        "base_web_url": "https://statistik.mcf.se/PXWeb/pxweb",
+        "rate_limit": 2,
+        "cell_limit": 100000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": ["px", "json-stat2"],
+            "dbid": {
+                "PxData": "PxData"
+            },
+            "source_references": null,
+            "website": "https://www.msb.se/",
+            "description": {
+                "sv": "MSB:s statistikdatabas innehåller data om bränder och antal omkomna.",
+                "en": "MSB database with data on fires and fatalities."
+            }
+        }
+    },
+    {
+        "provider_code": "nordicstat",
+        "api_type": "pxweb",
+        "default_language": "en",
+        "languages": ["en"],
+        "label": "Nordic Statistics",
+        "base_api_url": "https://pxweb.nordicstatistics.org/api/v1",
+        "base_web_url": "https://pxweb.nordicstatistics.org/pxweb",
+        "rate_limit": 2,
+        "cell_limit": 1000000,
+        "variable_limit": 1000000,
+        "extension": {
+            "country_code": "XX",
+            "data_formats": ["px", "json-stat2"],
+            "dbid": {
+                "Nordic%20Statistics": "Nordic%20Statistics"
+            },
+            "source_references": null,
+            "website": "https://www.nordicstatistics.org/",
+            "description": {
+                "en": "Nordic collaborative platform for statistical data."
+            }
+        }
+    },
+    {
+        "provider_code": "slu",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv", "en"],
+        "label": "SLU Riksskogstaxeringen",
+        "base_api_url": "https://skogsstatistik.slu.se/api/v1",
+        "base_web_url": "https://skogsstatistik.slu.se/pxweb",
+        "rate_limit": 1.25,
+        "cell_limit": 300000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": [
+                "px",
+                "xlsx",
+                "csv",
+                "csv2",
+                "csv3",
+                "json",
+                "json-stat",
+                "json-stat2"
+            ],
+            "dbid": {
+                "OffStat": "OffStat"
+            },
+            "source_references": null,
+            "website": "https://www.slu.se/",
+            "description": {
+                "sv": "Inventerar skogstillgångarna i Sverige.",
+                "en": "Inventories Sweden\u0027s forest resources."
+            }
+        }
+    },
+    {
+        "provider_code": "unece",
+        "api_type": "pxweb",
+        "default_language": "en",
+        "languages": ["en"],
+        "label": "UNECE",
+        "base_api_url": "https://w3.unece.org/PXWeb2015/api/v1",
+        "base_web_url": "https://w3.unece.org/PXWeb2015/pxweb",
+        "rate_limit": 2,
+        "cell_limit": 100000,
+        "variable_limit": 100000,
+        "extension": {
+            "country_code": "XX",
+            "data_formats": ["px", "json-stat2"],
+            "dbid": {
+                "STAT": "STAT"
+            },
+            "source_references": null,
+            "website": "https://www.unece.org/",
+            "description": {
+                "en": "United Nations Economic Commission for Europe."
+            }
+        }
+    },
+    {
+        "provider_code": "skog",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv", "en"],
+        "label": "Skogsstyrelsen",
+        "base_api_url": "https://pxweb.skogsstyrelsen.se/api/v1",
+        "base_web_url": "https://pxweb.skogsstyrelsen.se/pxweb",
+        "rate_limit": 2.8,
+        "cell_limit": 120000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": [
+                "px",
+                "xlsx",
+                "csv",
+                "json",
+                "json-stat",
+                "json-stat2"
+            ],
+            "dbid": {
+                "Skogsstyrelsens%20statistikdatabas": "Skogsstyrelsens%20statistikdatabas"
+            },
+            "source_references": null,
+            "website": "https://www.skogsstyrelsen.se/",
+            "description": {
+                "sv": "Ansvarar för skogspolitiken i Sverige.",
+                "en": "Responsible for forest policy in Sweden."
+            }
+        }
+    },
+    {
+        "provider_code": "statfin",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["en", "sv"],
+        "label": "Statistikcentralen",
+        "base_api_url": "https://statfin.stat.fi/PXWeb/api/v1",
+        "base_web_url": "https://pxdata.stat.fi/PxWeb/pxweb",
+        "rate_limit": 0.35,
+        "cell_limit": 120000,
+        "variable_limit": 120000,
+        "extension": {
+            "country_code": "FI",
+            "data_formats": [
+                "json-stat2",
+                "px",
+                "csv",
+                "json",
+                "xlsx",
+                "json-stat"
+            ],
+            "dbid": {
+                "StatFin": "StatFin",
+                "StatFin_Passiivi": "StatFin_Passiivi"
+            },
+            "source_references": null,
+            "website": "https://www.stat.fi/",
+            "description": {
+                "en": "National statistical institute of Finland.",
+                "sv": "Finlands officiella statistikmyndighet."
+            }
+        }
+    },
+    {
+        "provider_code": "trafi2",
+        "api_type": "pxweb",
+        "default_language": "en",
+        "languages": ["en", "sv"],
+        "label": "Finnish Transport Safety Agency",
+        "base_api_url": "https://trafi2.stat.fi/PXWeb/api/v1",
+        "base_web_url": "https://trafi2.stat.fi/PXWeb/pxweb",
+        "rate_limit": 0.15,
+        "cell_limit": 110000,
+        "variable_limit": 110000,
+        "extension": {
+            "country_code": "FI",
+            "data_formats": ["json-stat2", "px"],
+            "dbid": {
+                "TraFi": "TraFi"
+            },
+            "source_references": null,
+            "website": "https://trafi.fi/",
+            "description": {
+                "en": "Transport safety agency of Finland."
+            }
+        }
+    },
+    {
+        "provider_code": "vero",
+        "api_type": "pxweb",
+        "default_language": "en",
+        "languages": ["en", "sv"],
+        "label": "Finnish Tax Administration",
+        "base_api_url": "https://vero2.stat.fi/PXWeb/api/v1",
+        "base_web_url": "https://vero2.stat.fi/PXWeb/pxweb",
+        "rate_limit": 0.15,
+        "cell_limit": 150000,
+        "variable_limit": 150000,
+        "extension": {
+            "country_code": "FI",
+            "data_formats": ["json-stat2", "px"],
+            "dbid": {
+                "Vero": "Vero"
+            },
+            "source_references": null,
+            "website": "https://www.vero.fi/",
+            "description": {
+                "en": "Finnish Tax Administration (Verohallinto)."
+            }
+        }
+    },
+    {
+        "provider_code": "asub",
+        "api_type": "pxweb",
+        "default_language": "en",
+        "languages": ["en", "sv"],
+        "label": "Statistics Åland",
+        "base_api_url": "https://pxweb.asub.ax/PXWeb/api/v1",
+        "base_web_url": "https://pxweb.asub.ax/PXWeb/pxweb",
+        "rate_limit": 1.1,
+        "cell_limit": 100000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "FI",
+            "data_formats": ["json-stat2", "px"],
+            "dbid": {
+                "Statistik": "Statistik",
+                "Utredning": "Utredning"
+            },
+            "source_references": null,
+            "website": "https://pxweb.asub.ax/",
+            "description": {
+                "en": "Official statistics agency for Åland Islands."
+            }
+        }
+    },
+    {
+        "provider_code": "luke",
+        "api_type": "pxweb",
+        "default_language": "en",
+        "languages": ["en", "sv"],
+        "label": "LUKE Natural Resources Institute Finland",
+        "base_api_url": "https://statdb.luke.fi/PXWeb/api/v1",
+        "base_web_url": "https://statdb.luke.fi/PXWeb/pxweb",
+        "rate_limit": 1.1,
+        "cell_limit": 1000000,
+        "variable_limit": 10000,
+        "extension": {
+            "country_code": "FI",
+            "data_formats": ["json-stat2", "px"],
+            "dbid": {
+                "LUKE": "LUKE"
+            },
+            "source_references": null,
+            "website": "https://www.luke.fi/",
+            "description": {
+                "en": "Natural Resources Institute Finland."
+            }
+        }
+    },
+    {
+        "provider_code": "domstol",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv", "en"],
+        "label": "Domstolsverket",
+        "base_api_url": "https://pxweb.etjanst.domstol.se/PxWeb/api/v1",
+        "base_web_url": "https://pxweb.etjanst.domstol.se/PxWeb/pxweb",
+        "rate_limit": 1.25,
+        "cell_limit": 100000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": ["px", "json-stat2"],
+            "dbid": {
+                "DOMstat": "DOMstat"
+            },
+            "source_references": null,
+            "website": "https://www.domstol.se/",
+            "description": {
+                "sv": "Statlig myndighet som ansvarar för domstolsväsendet.",
+                "en": "Agency responsible for courts administration."
+            }
+        }
+    },
+    {
+        "provider_code": "eurostat",
+        "api_type": "eurostat",
+        "default_language": "en",
+        "languages": ["en"],
+        "label": "Eurostat",
+        "base_api_url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/3.0/data/dataflow/ESTAT/",
+        "base_web_url": "https://ec.europa.eu/eurostat/databrowser/view/",
+        "rate_limit": 0.25,
+        "cell_limit": 1000000,
+        "variable_limit": 1000000,
+        "extension": {
+            "country_code": "XX",
+            "data_formats": ["json-stat2"],
+            "source_references": null,
+            "website": "https://ec.europa.eu/eurostat/",
+            "description": {
+                "en": "Statistical office of the European Union."
+            }
+        }
+    },
+    {
+        "provider_code": "dst",
+        "api_type": "dst",
+        "default_language": "en",
+        "languages": ["en"],
+        "label": "Statistics Denmark",
+        "base_api_url": "http://api.statbank.dk/v1/",
+        "base_web_url": "https://statistikbanken.dk/",
+        "rate_limit": 1.1,
+        "cell_limit": 100000,
+        "variable_limit": 100000,
+        "extension": {
+            "country_code": "DK",
+            "data_formats": ["JSONSTAT", "CSV", "XLSX", "HTML", "PX"],
+            "source_references": null,
+            "website": "https://www.dst.dk/",
+            "description": {
+                "en": "National statistical institute of Denmark."
+            }
+        }
+    },
+    {
+        "provider_code": "kolada",
+        "api_type": "kolada",
+        "default_language": "sv",
+        "languages": ["sv"],
+        "label": "Kolada",
+        "base_api_url": "https://api.kolada.se/v3",
+        "base_web_url": "https://kolada.se",
+        "rate_limit": 0.35,
+        "cell_limit": 5000,
+        "variable_limit": 25,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": ["json"],
+            "source_references": {
+                "sv": "Källa: Kolada"
+            },
+            "website": "https://kolada.se/",
+            "description": {
+                "sv": "Kolada samlar nyckeltal om svenska kommuner och regioner."
+            }
+        }
+    },
+    {
+        "provider_code": "kolada_ou",
+        "api_type": "kolada_ou",
+        "default_language": "sv",
+        "languages": ["sv"],
+        "label": "Kolada (enhetsdata)",
+        "base_api_url": "https://api.kolada.se/v3",
+        "base_web_url": "https://kolada.se",
+        "rate_limit": 0.35,
+        "cell_limit": 5000,
+        "variable_limit": 25,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": ["json"],
+            "source_references": {
+                "sv": "Källa: Kolada"
+            },
+            "website": "https://kolada.se/",
+            "description": {
+                "sv": "Kolada samlar nyckeltal för verksamheter (enheter) inom svenska kommuner, t.ex. skolor och äldreboenden."
+            }
+        }
+    },
+    {
+        "provider_code": "skolverket",
+        "api_type": "pxweb",
+        "default_language": "sv",
+        "languages": ["sv"],
+        "label": "Skolverkets statistikdatabas",
+        "base_api_url": "https://statistikdatabasen.skolverket.se/PxWeb/api/v1",
+        "base_web_url": "https://statistikdatabasen.skolverket.se/PxWeb/pxweb",
+        "rate_limit": 1.25,
+        "cell_limit": 100000,
+        "variable_limit": 1000,
+        "extension": {
+            "country_code": "SE",
+            "data_formats": [
+                "px",
+                "xlsx",
+                "csv",
+                "csv2",
+                "csv3",
+                "json",
+                "json-stat",
+                "json-stat2"
+            ],
+            "dbid": {
+                "Skolverkets_statistikdatabas": "Skolverkets_statistikdatabas"
+            },
+            "source_references": null,
+            "website": "https://www.skolverket.se/",
+            "description": {
+                "sv": "Skolverket är en svensk statlig förvaltningsmyndighet som ansvarar för styrning, uppföljning och utveckling av skolväsendet.",
+                "en": "Skolverket is the Swedish National Agency for Education, responsible for governance, follow-up, and development of the school system."
+            }
+        }
+    }
+]
