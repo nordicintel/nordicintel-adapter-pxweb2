@@ -6,6 +6,9 @@ The package implements the structural `nordicintel_core.models.NordicIntelAdapte
 protocol. Hosts inject a `ProviderDefinition`, resolved secrets, and the shared
 `AsyncHttpClient`; the adapter performs no database access.
 
+See also [the onboarding note](docs/onboarding/adapter-contract.md) for a source-backed
+walkthrough of the host boundary and current adapter behavior.
+
 ## Installing it in a host
 
 The factory registers itself under the name a Provider row carries as its `adapter_type`:
